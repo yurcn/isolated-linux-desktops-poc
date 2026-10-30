@@ -1,0 +1,36 @@
+#!/bin/bash
+set -e
+
+IP="172.31.18.11/24"
+GW="172.31.18.1"
+DNS="172.31.18.1"
+
+echo "=== network initialization ==="
+
+ip link set lo up
+ip link set eth0 up
+ip addr flush dev eth0
+ip addr add "$IP" dev eth0
+ip route replace default via "$GW" dev eth0
+
+echo "=== network ==="
+ip -br addr
+ip route
+
+echo "=== resolver ==="
+cat /etc/resolv.conf
+
+mkdir -p /run/user/1001
+
+exec setpriv \
+    --reuid=1001 \
+    --regid=1001 \
+    --keep-groups \
+    env \
+        DISPLAY=:8 \
+        XAUTHORITY=/run/user/1001/Xauthority \
+        XDG_RUNTIME_DIR=/run/user/1001 \
+        HOME=/home/desktop \
+        USER=desktop \
+        LOGNAME=desktop \
+        dbus-run-session -- startxfce4

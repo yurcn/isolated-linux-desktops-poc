@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Starting network..."
+
+ip link set lo up
+ip link set eth0 up
+
+dhclient -v eth0
+
+echo "=== network ==="
+ip -br addr
+ip route
+
+echo "=== DNS ==="
+cat /etc/resolv.conf
+
+mkdir -p /run/user/1001
+chown 1001:1001 /run/user/1001
+chmod 0700 /run/user/1001
+
+setpriv \
+    --reuid=1001 \
+    --regid=1001 \
+    --init-groups \
+    env \
+        DISPLAY=:8 \
+        XAUTHORITY=/run/user/1001/Xauthority \
+        XDG_RUNTIME_DIR=/run/user/1001 \
+        xdpyinfo >/dev/null
+
+echo "X11 authentication OK"
+
+exec setpriv \
+    --reuid=1001 \
+    --regid=1001 \
+    --init-groups \
+    --bounding-set=-net_admin \
+    --inh-caps=-all \
+    --ambient-caps=-all \
+    env \
+        DISPLAY=:8 \
+        XAUTHORITY=/run/user/1001/Xauthority \
+        XDG_RUNTIME_DIR=/run/user/1001 \
+        HOME=/home/desktop \
+        USER=desktop \
+        LOGNAME=desktop \
+        dbus-run-session -- startxfce4
